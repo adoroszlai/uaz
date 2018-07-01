@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+set -e -u
+
+usage() {
+  echo "Usage: $0 issue link [title]"
+  echo "Point JIRA_URL to the Jira instance"
+  return 1
+}
+
+issue=${1:-}
+link=${2:-}
+title=${3:-${link}}
+: ${JIRA_URL:=}
+
+[[ -z ${JIRA_URL} ]] && usage
+[[ -z ${issue} ]] && usage
+[[ -z ${link} ]] && usage
+[[ -z ${title} ]] && usage
+
+curl --netrc --include --silent -X POST --header 'Content-Type: application/json' \
+    --data "{ \"object\": { \"url\": \"${link}\", \"title\": \"${title}\" } }" \
+    "${JIRA_URL}/rest/api/latest/issue/${issue}/remotelink" \
+  | grep '^HTTP'

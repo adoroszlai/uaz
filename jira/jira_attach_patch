@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+set -e -u
+
+usage() {
+  echo "Usage: $0 issue patch"
+  echo "Point JIRA_URL to the Jira instance"
+  return 1
+}
+
+issue=${1:-}
+patch=${2:-}
+: ${JIRA_URL:=}
+
+[[ -z ${JIRA_URL} ]] && usage
+[[ -z ${issue} ]] && usage
+[[ -z ${patch} ]] && usage
+[[ ! -s ${patch} ]] && usage
+
+curl --netrc --include --silent -X POST --header "X-Atlassian-Token: nocheck" \
+    --form "file=@${patch}" \
+    "${JIRA_URL}/rest/api/latest/issue/${issue}/attachments" \
+  | grep '^HTTP'
