@@ -1,0 +1,41 @@
+#!/bin/bash
+#
+# Convenience functions related to mirroring.
+#
+# requirements:
+# - env: REPO_DIR, REPO_HOST
+# - docker
+
+mirror-url() {
+  [[ -n ${REPO_DIR} ]] || return 1
+  docker run --rm -v ${REPO_DIR}:/var/repo adoroszlai/copy-yum-repo file "$@"
+}
+
+mirror-repo() {
+  [[ -n ${REPO_DIR} ]] || return 1
+  for repo_url in "$@"; do
+    echo "Mirroring ${repo_url} -> ${REPO_DIR}"
+    docker run --rm -v ${REPO_DIR}:/var/repo -e REPO_HOST adoroszlai/copy-yum-repo repo "${repo_url}"
+  done
+}
+
+mirror-pkgs() {
+  [[ -n ${REPO_DIR} ]] || return 1
+  local repo_url=$1
+  shift
+  docker run --rm -v ${REPO_DIR}:/var/repo -e REPO_HOST adoroszlai/copy-yum-repo pkg "${repo_url}" "$@"
+}
+
+mirror-apt() {
+  [[ -n ${REPO_DIR} ]] || return 1
+  for list_url in "$@"; do
+    echo "Mirroring ${list_url} -> ${REPO_DIR}"
+    docker run --rm -v ${REPO_DIR}:/var/spool/apt-mirror/mirror -e REPO_HOST adoroszlai/apt-mirror ${list_url}
+  done
+}
+
+serve-mirrors() {
+  [[ -n ${REPO_DIR} ]] || return 1
+  [[ -n ${REPO_HOST} ]] || return 2
+  docker run -d --name ${REPO_HOST} -p 80:80 -h ${REPO_HOST} -v ${REPO_DIR}:/var/repo adoroszlai/serve-yum-repo
+}
