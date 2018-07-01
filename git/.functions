@@ -1,0 +1,49 @@
+#!/bin/bash
+#
+# Functions for git and GitHub
+#
+# requirements:
+# - env: GITHUB_USER
+# - git
+
+git-update-fork-from-origin() {
+  # Updates current branch in the remote "${GITHUB_USER}" from the remote "origin"
+
+  local branch=$(git branch | grep '^\*' | cut -f2 -d' ')
+  [[ -n ${branch} ]] || return 1
+  git fetch origin && \
+    git merge --ff-only origin/${branch} && \
+    git push ${GITHUB_USER} ${branch}
+}
+
+git-changed-since() {
+  # Checks if the given file has changed compared to the given ref
+  # returns 0 if changed, otherwise 1
+  # example: git-changed-since origin/trunk ~/src/ambari ambari-server/pom.xml
+
+  local ref=$1
+  local work_dir=$2
+  local file=$3
+  if [[ $(git -C ${work_dir} diff --name-status ${ref} -- ${file} | cut -f1) == M ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+git-edit-conflict() {
+  # Edit conflicting files (during a merge) using $VISUAL
+
+  [[ -n ${VISUAL} ]] || return 1
+  local conflicts=$(echo $(git status | grep 'both modified:' | awk '{ print $3 }'))
+  [[ -z ${conflicts} ]] || eval "${VISUAL} ${conflicts}"
+}
+
+gbi() {
+  # Guess Jira issue ID from branch name
+  # prints issue ID if found
+  # returns 0 if found, otherwise 1
+
+  local issue=$(git status -s -b | head -1 | perl -wpl -e 's/^## (\w+-\d+).*/$1/')
+  [[ ${issue#### } == ${issue} ]] && echo ${issue}
+}
