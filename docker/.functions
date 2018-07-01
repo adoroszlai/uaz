@@ -1,0 +1,24 @@
+#!/bin/bash
+#
+# Functions, aliases for Docker.
+#
+# requirements:
+# - docker
+
+docker-host-ip() {
+  docker inspect --format="{{.NetworkSettings.IPAddress}}" $1
+}
+
+docker-rm-all() {
+  docker rm $(docker ps -f status=exited -q)
+}
+
+docker-rm-orphan-images() {
+  docker image ls | grep '<none>.*<none>' | awk '{ print $3 }' | xargs docker image rm
+}
+
+alias docker-exec='docker exec -it --env "COLUMNS=$COLUMNS" --env "LINES=$LINES" --env "TERM=$TERM"'
+alias dcup='docker-compose up -d && docker-compose logs -f'
+alias dcd='docker-compose down'
+alias dcdv='docker-compose down -v'
+alias dclf='docker-compose logs -f'
