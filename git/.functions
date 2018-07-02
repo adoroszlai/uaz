@@ -3,8 +3,9 @@
 # Functions for git and GitHub
 #
 # requirements:
-# - env: GITHUB_USER
+# - env: GITHUB_USER, ISSUES_DIR
 # - git
+# - hub (for 'hub-*')
 
 git-update-fork-from-origin() {
   # Updates current branch in the remote "${GITHUB_USER}" from the remote "origin"
@@ -39,11 +40,57 @@ git-edit-conflict() {
   [[ -z ${conflicts} ]] || eval "${VISUAL} ${conflicts}"
 }
 
-gbi() {
-  # Guess Jira issue ID from branch name
+git-branch-issue() {
+  # Guess Jira issue ID (eg. BUG-12345) from branch name
   # prints issue ID if found
-  # returns 0 if found, otherwise 1
+  # returns 0 if found, otherwise non-zero
 
   local issue=$(git status -s -b | head -1 | perl -wpl -e 's/^## (\w+-\d+).*/$1/')
-  [[ ${issue#### } == ${issue} ]] && echo ${issue}
+  if [[ -z ${issue} ]]; then
+    return 1
+  elif [[ ${issue#### } != ${issue} ]]; then
+    echo "Cannot guess issue ID from current branch" >&2
+    return 2
+  else
+    echo ${issue}
+  fi
+}
+
+edit-pull-request() {
+  # Start editing a file with pull request title and description
+
+  local issue=$(git-branch-issue)
+  local subject=$(git log --format='%s' HEAD^..HEAD | grep "${issue}" | perl -wpl -e "s/^\[?${issue}\]? ?[-.:]? /[${issue}] /")
+  [[ -n ${issue} ]] || return 1
+  [[ -d ${ISSUES_DIR} ]] || return 2
+  dir=${ISSUES_DIR}/${issue}
+  mkdir -p ${dir}
+  file=${dir}/pullrequest.md
+  if [[ ! -s ${file} ]]; then
+    echo "${subject}" >> ${file}
+    echo "" >> ${file}
+    [[ -e .github/PULL_REQUEST_TEMPLATE.md ]] && cat .github/PULL_REQUEST_TEMPLATE.md >> ${file}
+  fi
+  eval "${VISUAL} ${file}"
+}
+
+hub-pull-request() {
+  # Create pull request for current branch.
+  # Takes PR title and description from $ISSUES_DIR/<issue>/pullrequest.md
+  #
+  # usage: hub-pull-request -b <base branch> ... (any other option for hub)
+
+  local issue=$(git-branch-issue)
+  [[ -n ${issue} ]] || return 1
+  dir=${ISSUES_DIR}/${issue}
+  md=${dir}/pullrequest.md
+  if [[ ! -e ${dir} ]]; then
+    echo "Cannot find source directory: ${dir}" >&2
+    return 2
+  elif [[ ! -e ${md} ]]; then
+    echo "Cannot find pull request file: ${md}" >&2
+    return 3
+  else
+    hub pull-request -o -F "${md}" -a "${GITHUB_USER}" "$@"
+  fi
 }
