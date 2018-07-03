@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+#
+# Functions for downloading and viewing Jenkins build logs.
+#
+# requirements:
+# - env:
+#   - JENKINS_URL
+#   - JENKINS_LOGS_DIR (directory to download logs to)
+#   - JENKINS_JOBS (array of jobs for which to download logs)
+# - curl
+# - jq
+# - xz
+
+jenkins-build-log-file() {
+  # Prints the path where log for the given job's build is (or should be) stored, compressed or uncompressed
+
+  local job="$1"
+  local -i build="$2"
+  local compressed="${3:-compressed}"
+
+  local ext=".log"
+  if [[ ${compressed} == compressed ]]; then
+    ext="${ext}.xz"
+  fi
+
+  echo "${JENKINS_LOGS_DIR}/${job}/${build}${ext}"
+}
+
+jenkins-fetch-build-log() {
+  # Fetches and compresses a single build log to JENKINS_LOGS_DIR
+
+  local job="$1"
+  local -i build="$2"
+
+  [[ -n ${JENKINS_LOGS_DIR} ]] || return 1
+  [[ -n ${job} ]] || return 2
+  mkdir -p "${JENKINS_LOGS_DIR}/${job}" || return 3
+
+  echo -n "Downloading ${job}/${build}..."
+  local log_file=$(jenkins-build-log-file "${job}" ${build} "uncompressed")
+  local response_code=$(curl -s -w '%{http_code}' -o "${log_file}" "${JENKINS_URL}/job/${job}/${build}/consoleText")
+  echo "${response_code}"
+  case ${response_code} in
+    2??)
+      if grep -q '^Finished: ' "${log_file}"; then
+        xz -9 "${log_file}"
+      else
+        rm "${log_file}"
+        echo "Removed incomplete log ${job}/${build}"
+      fi
+      ;;
+    *)
+      rm "${log_file}"
+      ;;
+  esac
+}
+
+jenkins-fetch-job-logs() {
+  # Fetches logs between the given builds for a specific job
+
+  local job="$1"
+  local -i s=${2:-0}
+  local -i e=${3:-0}
+
+  for ((build=${s}; build <= ${e}; build++)); do
+    local compressed=$(jenkins-build-log-file "${job}" ${build} "compressed")
+    local uncompressed=$(jenkins-build-log-file "${job}" ${build} "uncompressed")
+    if [[ -e "${compressed}" ]]; then
+      continue
+    elif [[ -s "${uncompressed}" ]] && grep -q '^Finished: ' "${uncompressed}"; then
+      xz -9 "${uncompressed}"
+    else
+      jenkins-fetch-build-log "${job}" "${build}" \
+        && sleep 2
+    fi
+  done
+}
+
+jenkins-fetch-new-logs() {
+  # Fetches new logs for all "known" jobs (listed by JENKINS_JOBS)
+
+  [[ -n ${JENKINS_JOBS} ]] || return 1
+
+  for job in ${JENKINS_JOBS[*]}; do
+    local -i s=$(jenkins-last-fetched-build-id "${job}")
+    local -i e=$(jenkins-last-completed-build-id "${job}")
+    jenkins-fetch-job-logs "${job}" $((s+1)) ${e}
+  done
+}
+
+jenkins-last-fetched-build-id() {
+  # Prints the ID of the last fetched build for the given job.
+
+  local job="$1"
+  [[ -n ${job} ]] || return 1
+  [[ -d ${JENKINS_LOGS_DIR}/${job} ]] || return 2
+
+  ls "${JENKINS_LOGS_DIR}/${job}" | grep '\.log' | cut -f1 -d'.' | sort -gr | head -1
+}
+
+jenkins-last-completed-build-id() {
+  # Queries and prints the ID of the last completed build for the given job.
+
+  local job="$1"
+  [[ -n ${job} ]] || return 1
+
+  curl -s "${JENKINS_URL}/job/${job}/lastCompletedBuild/api/json?tree=id" | jq -r '.id'
+}
+
+jenkins-view-log() {
+  # Opens a Jenkins build log in $PAGER (eg. less)
+
+  local job="$1"
+  [[ -n ${job} ]] || return 1
+
+  local -i build="$2"
+  [[ -n ${build} ]] || return 2
+
+  local log_file=$(jenkins-build-log-file "${job}" ${build})
+  [[ -s ${log_file} ]] || return 3
+
+  eval "${PAGER:-less} ${log_file}"
+}
