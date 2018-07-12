@@ -31,6 +31,7 @@ jenkins-fetch-build-log() {
 
   local job="$1"
   local -i build="$2"
+  local keep_incomplete="$3"
 
   [[ -n ${JENKINS_LOGS_DIR} ]] || return 1
   [[ -n ${job} ]] || return 2
@@ -42,7 +43,7 @@ jenkins-fetch-build-log() {
   echo "${response_code}"
   case ${response_code} in
     2??)
-      if grep -q '^Finished: ' "${log_file}"; then
+      if grep -q '^Finished: ' "${log_file}" || [[ -n ${keep_incomplete} ]]; then
         xz -9 "${log_file}"
       else
         rm "${log_file}"
