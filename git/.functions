@@ -94,3 +94,10 @@ hub-pull-request() {
     hub pull-request -o -F "${md}" -a "${GITHUB_USER}" "$@"
   fi
 }
+
+git-changed-tests() {
+  # Prints list of "tests" changed by the given commit, separated by commas (this format is suitable for eg. Maven Surefire's -Dtest=...)
+
+  local ref=${1:-HEAD}
+  echo $(git show --name-status ${ref} | fgrep Test | grep "^[AM]" | awk -F'/' '{ print $NF }' | cut -f1 -d. | sort -u) | sed "s/ /,/g"
+}
