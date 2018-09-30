@@ -30,7 +30,7 @@ mirror-apt() {
   [[ -n ${REPO_DIR} ]] || return 1
   for list_url in "$@"; do
     echo "Mirroring ${list_url} -> ${REPO_DIR}"
-    docker run --rm -v ${REPO_DIR}:/var/spool/apt-mirror/mirror -e REPO_HOST adoroszlai/apt-mirror ${list_url}
+    docker run --rm -v ${REPO_DIR}:/var/spool/apt-mirror/mirror -e REPO_HOST adoroszlai/apt-mirror ${list_url} amd64 i386
   done
 }
 
