@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# vim: ft=sh
+
+source-all() {
+  # Source all *.functions files in a directory tree
+  # and add all directories with executables to the PATH
+  # This can be used to bootstrap UAZ.
+  #
+  # Usage:
+  #   source <uaz_dir>/source_all
+  #   source-all <path>
+
+  local p=$1
+  [[ -n ${p} ]] && [[ -d ${p} ]] || return 1
+
+  for f in $(find ${p} -type f -name '*.functions'); do
+    source ${f}
+  done
+
+  for d in $(find ${p} -type f -perm 700 -not -path '*/.git/*' | xargs -n 1 dirname | sort -u); do
+    export PATH=${PATH}:${d}
+  done
+}
