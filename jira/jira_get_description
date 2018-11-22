@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -e -u
+
+usage() {
+  echo "Usage: $0 issue"
+  echo "Point JIRA_URL to the Jira instance"
+  return 1
+}
+
+issue=${1:-}
+: ${JIRA_URL:=}
+
+[[ -z ${JIRA_URL} ]] && usage
+[[ -z ${issue} ]] && usage
+
+curl --netrc --silent "${JIRA_URL}/rest/api/2/issue/${issue}?fields=summary"|jq -r '.fields.summary'
