@@ -21,4 +21,4 @@ alias docker-exec='docker exec -it --env "COLUMNS=$COLUMNS" --env "LINES=$LINES"
 alias dcup='docker-compose up -d && docker-compose logs -f'
 alias dcd='docker-compose down'
 alias dcdv='docker-compose down -v'
-alias dclf='docker-compose logs -f'
+alias dclf='docker-compose logs -f --tail=10'
