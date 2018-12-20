@@ -26,6 +26,15 @@ jenkins-build-log-file() {
   echo "${JENKINS_LOGS_DIR}/${job}/${build}${ext}"
 }
 
+jenkins-build-log-url() {
+  # Prints the URL for the plain text console log of a job's specific build
+
+  local job="$1"
+  local -i build="$2"
+
+  echo "${JENKINS_URL}/job/${job}/${build}/consoleText"
+}
+
 jenkins-fetch-build-log() {
   # Fetches and compresses a single build log to JENKINS_LOGS_DIR
 
@@ -39,7 +48,8 @@ jenkins-fetch-build-log() {
 
   echo -n "Downloading ${job}/${build}..."
   local log_file=$(jenkins-build-log-file "${job}" ${build} "uncompressed")
-  local response_code=$(curl -s -w '%{http_code}' -o "${log_file}" "${JENKINS_URL}/job/${job}/${build}/consoleText")
+  local log_url=$(jenkins-build-log-url "${job}" ${build})
+  local response_code=$(curl -s -w '%{http_code}' -o "${log_file}" "${log_url}")
   echo "${response_code}"
   case ${response_code} in
     2??)
