@@ -46,9 +46,9 @@ git-branch-issue() {
   # returns 0 if found, otherwise non-zero
 
   local issue=$(git status -s -b | head -1 | perl -wpl -e 's/^## (\w+-\d+).*/$1/')
-  if [[ -z ${issue} ]]; then
+  if [[ -z "${issue}" ]]; then
     return 1
-  elif [[ ${issue#### } != ${issue} ]]; then
+  elif [[ "${issue##\#\# }" != "${issue}" ]]; then
     echo "Cannot guess issue ID from current branch" >&2
     return 2
   else
