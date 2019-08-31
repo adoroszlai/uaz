@@ -60,7 +60,7 @@ edit-pull-request() {
   # Start editing a file with pull request title and description
 
   local issue=$(git-branch-issue)
-  local subject=$(git log --format='%s' HEAD^..HEAD | grep "${issue}" | perl -wpl -e "s/^\[?${issue}\]? ?[-.:]? /[${issue}] /")
+  local subject=$(git log --format='%s' HEAD^..HEAD | grep "${issue}")
   [[ -n ${issue} ]] || return 1
   [[ -d ${ISSUES_DIR} ]] || return 2
   dir=${ISSUES_DIR}/${issue}
