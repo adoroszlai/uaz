@@ -101,3 +101,17 @@ git-changed-tests() {
   local ref=${1:-HEAD}
   echo $(git show --name-status ${ref} | fgrep Test | grep "^[AM]" | awk -F'/' '{ print $NF }' | cut -f1 -d. | sort -u) | sed "s/ /,/g"
 }
+
+git-prune-branches() {
+  # Deletes local branches that have been "merged" into target
+  # Default target is origin/trunk
+  #
+  # usage: git-prune-branch [target]
+
+  local target_branch=${1:-origin/trunk}
+  local b
+  for b in $(git branch | grep -v '^\* ' | sed 's/^ *//'); do
+    git log --oneline ${target_branch} | cut -f2- -d' ' | grep "^${b}" \
+      && git branch -D "${b}"
+  done
+}
