@@ -61,16 +61,24 @@ edit-pull-request() {
 
   local issue=$(git-branch-issue)
   local subject=$(git log --format='%s' HEAD^..HEAD | grep "${issue}")
+  local template=${PR_TEMPLATE:-.github/PULL_REQUEST_TEMPLATE.md}
+
   [[ -n ${issue} ]] || return 1
   [[ -d ${ISSUES_DIR} ]] || return 2
+
   dir=${ISSUES_DIR}/${issue}
   mkdir -p ${dir}
+
   file=${dir}/pullrequest.md
   if [[ ! -s ${file} ]]; then
     echo "${subject}" >> ${file}
     echo "" >> ${file}
-    [[ -e .github/PULL_REQUEST_TEMPLATE.md ]] && cat .github/PULL_REQUEST_TEMPLATE.md >> ${file}
+    [[ -e "${template}" ]] \
+      && cat "${template}" \
+        | sed -e "s/{{issue}}/${issue}/g" \
+      >> ${file}
   fi
+
   eval "${VISUAL} ${file}"
 }
 
