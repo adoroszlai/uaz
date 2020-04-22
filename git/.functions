@@ -123,3 +123,38 @@ git-prune-branches() {
       && git branch -D "${b}"
   done
 }
+
+hub-rebuild-pr() {
+  # Triggers CI check with an empty commit for the given pull request
+  #
+  # usage: hub-rebuild-pr <PR ID>
+
+  if [[ -z ${1} ]]; then
+    return 1
+  fi
+
+  local -i pr
+  pr=${1}
+
+  local repo
+  repo=$(git remote get-url origin | perl -wpl -e 's@^https?://[^/]*/@@; s/^.*://; s/\.git$//;')
+
+  if [[ -z ${repo} ]]; then
+    return 2
+  fi
+
+  local source_repo branch
+  read -r source_repo branch <<<$(curl -Ss "https://api.github.com/repos/${repo}/pulls/${pr}" | jq -r '.head.repo.ssh_url + " " + .head.ref')
+
+  if [[ -z ${source_repo} ]] || [[ -z ${branch} ]]; then
+    return 2
+  fi
+
+  git fetch "${source_repo}" "${branch}"
+  git checkout FETCH_HEAD
+
+  git commit -m "trigger new CI check" --allow-empty
+  git push "${source_repo}" HEAD:"${branch}"
+
+  git checkout -
+}
