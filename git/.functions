@@ -60,7 +60,7 @@ edit-pull-request() {
   # Start editing a file with pull request title and description
 
   local issue=$(git-branch-issue)
-  local subject=$(git log --format='%s' HEAD^..HEAD | grep "${issue}")
+  local subject=$(git log --format='%s' | grep "${issue}" | tail -1)
   local template=${PR_TEMPLATE:-.github/PULL_REQUEST_TEMPLATE.md}
 
   [[ -n ${issue} ]] || return 1
