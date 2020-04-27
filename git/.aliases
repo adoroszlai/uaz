@@ -1,0 +1,2 @@
+alias gmomne='git merge --no-edit origin/master'
+alias grom='git rebase origin/master'

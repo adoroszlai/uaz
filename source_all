@@ -13,7 +13,7 @@ source-all() {
   local p=$1
   [[ -n ${p} ]] && [[ -d ${p} ]] || return 1
 
-  for f in $(find ${p} -type f -name '*.functions'); do
+  for f in $(find ${p} -type f -name '*.functions' -or -name '*.aliases'); do
     source ${f}
   done
 
