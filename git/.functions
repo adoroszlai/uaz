@@ -116,11 +116,16 @@ git-prune-branches() {
   #
   # usage: git-prune-branch [target]
 
+  local dry_run=
+  if [[ "$1" == "-n" ]] || [[ "$1" == "--dry-run" ]]; then
+    dry_run=echo
+    shift
+  fi
   local target_branch=${1:-origin/trunk}
   local b
   for b in $(git branch | grep -v '^\* ' | sed 's/^ *//'); do
     git log --oneline ${target_branch} | cut -f2- -d' ' | grep "^${b}" \
-      && git branch -D "${b}"
+      && ${dry_run} git branch -D "${b}"
   done
 }
 
