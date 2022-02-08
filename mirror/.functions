@@ -37,5 +37,5 @@ mirror-apt() {
 serve-mirrors() {
   [[ -n ${REPO_DIR} ]] || return 1
   [[ -n ${REPO_HOST} ]] || return 2
-  docker run -d --name ${REPO_HOST} -p 80:80 -h ${REPO_HOST} -v ${REPO_DIR}:/usr/share/nginx/html:ro nginx:alpine
+  docker run -d --name ${REPO_HOST} -p 80:80 -p 443:443 -h ${REPO_HOST} -v ${REPO_DIR}:/usr/share/nginx/html:ro nginx:alpine
 }
