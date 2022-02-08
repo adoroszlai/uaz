@@ -1,2 +1,6 @@
 alias gmomne='git merge --no-edit origin/master'
 alias grom='git rebase origin/master'
+alias gds='git diff --stat'
+alias gdom='git diff origin/master'
+alias gdsom='git diff --stat origin/master'
+alias gdmbom='git diff $(git merge-base HEAD origin/master)..HEAD'
