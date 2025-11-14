@@ -5,7 +5,7 @@
 # requirements:
 # - env: GITHUB_USER, ISSUES_DIR
 # - git
-# - hub (for 'hub-*')
+# - gh CLI (for 'hub-*')
 
 git-update-fork-from-origin() {
   # Updates current branch in the remote "${GITHUB_USER}" from the remote "origin"
@@ -60,7 +60,6 @@ edit-pull-request() {
   # Start editing a file with pull request title and description
 
   local issue=$(git-branch-issue)
-  local subject=$(git log --format='%s' | grep "${issue}" | tail -1)
   local template=${PR_TEMPLATE:-.github/PULL_REQUEST_TEMPLATE.md}
 
   [[ -n ${issue} ]] || return 1
@@ -71,8 +70,6 @@ edit-pull-request() {
 
   file=${dir}/pullrequest.md
   if [[ ! -s ${file} ]]; then
-    echo "${subject}" >> ${file}
-    echo "" >> ${file}
     [[ -e "${template}" ]] \
       && cat "${template}" \
         | sed -e "s/{{issue}}/${issue}/g" \
@@ -92,6 +89,7 @@ hub-pull-request() {
   [[ -n ${issue} ]] || return 1
   dir=${ISSUES_DIR}/${issue}
   md=${dir}/pullrequest.md
+
   if [[ ! -e ${dir} ]]; then
     echo "Cannot find source directory: ${dir}" >&2
     return 2
@@ -99,7 +97,8 @@ hub-pull-request() {
     echo "Cannot find pull request file: ${md}" >&2
     return 3
   else
-    hub pull-request -o -F "${md}" -a "${GITHUB_USER}" "$@"
+    local subject=$(git log --format='%s' | grep "${issue}" | tail -1)
+    gh pr create -F "${md}" -a "${GITHUB_USER}" -t "${subject}" --web "$@"
   fi
 }
 
